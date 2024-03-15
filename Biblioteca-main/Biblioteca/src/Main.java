@@ -6,8 +6,8 @@ public class Main {
         Biblioteca biblioteca = new Biblioteca();
 
         // Crear usuarios y libros de ejemplo
-        Usuario usuario1 = new Usuario("Juan", "Perez", "123456789", "juan@gmail.com");
-        Usuario usuario2 = new Usuario("Maria", "Gomez", "987654321", "maria@gmail.com");
+        Usuario usuario1 = new Usuario("Juan", "Perez", "123456789", "juan@example.com");
+        Usuario usuario2 = new Usuario("Maria", "Gomez", "987654321", "maria@example.com");
         biblioteca.agregarUsuario(usuario1);
         biblioteca.agregarUsuario(usuario2);
 
@@ -19,7 +19,7 @@ public class Main {
         int opcion;
         do {
             System.out.println("\nMenú de opciones:");
-            System.out.println("1. Acceder a un usuario");
+            System.out.println("1. Iniciar sesión en la biblioteca");
             System.out.println("2. Ver libros disponibles");
             System.out.println("3. Ver libros pendientes de devolver por un usuario");
             System.out.println("4. Pedir un libro");
@@ -31,11 +31,12 @@ public class Main {
 
             switch (opcion) {
                 case 1:
-                    System.out.print("Ingrese el nombre del usuario: ");
+                    System.out.print("Ingrese su nombre de usuario: ");
                     String nombreUsuario = scanner.nextLine();
                     Usuario usuario = encontrarUsuario(biblioteca, nombreUsuario);
                     if (usuario != null) {
-                        System.out.println("Usuario encontrado: " + usuario.getNombre() + " " + usuario.getApellido());
+                        System.out.println("¡Bienvenido, " + usuario.getNombre() + "!");
+                        biblioteca.agregarUsuarioColaReserva(usuario);
                     } else {
                         System.out.println("Usuario no encontrado.");
                     }
@@ -43,11 +44,13 @@ public class Main {
                 case 2:
                     System.out.println("Libros disponibles:");
                     for (Libro libro : biblioteca.getLibros()) {
-                        System.out.println(libro.getTitulo() + " - " + libro.getAutor() + " - ISBN: " + libro.getIsbn());
+                        if (libro.getUsuarioReservado() == null) {
+                            System.out.println(libro.getTitulo() + " - " + libro.getAutor() + " - ISBN: " + libro.getIsbn());
+                        }
                     }
                     break;
                 case 3:
-                    System.out.print("Ingrese el nombre del usuario: ");
+                    System.out.print("Ingrese su nombre de usuario: ");
                     String nombreUsuarioPendientes = scanner.nextLine();
                     Usuario usuarioPendientes = encontrarUsuario(biblioteca, nombreUsuarioPendientes);
                     if (usuarioPendientes != null) {
@@ -60,25 +63,26 @@ public class Main {
                     }
                     break;
                 case 4:
-                    System.out.print("Ingrese el nombre del usuario: ");
+                    System.out.print("Ingrese su nombre de usuario: ");
                     String nombreUsuarioPrestamo = scanner.nextLine();
                     Usuario usuarioPrestamo = encontrarUsuario(biblioteca, nombreUsuarioPrestamo);
                     if (usuarioPrestamo != null) {
                         System.out.print("Ingrese el título del libro que desea pedir: ");
                         String tituloLibro = scanner.nextLine();
                         Libro libroPrestamo = encontrarLibro(biblioteca, tituloLibro);
-                        if (libroPrestamo != null) {
+                        if (libroPrestamo != null && libroPrestamo.getUsuarioReservado() == null) {
                             usuarioPrestamo.addLibroPendiente(libroPrestamo);
-                            System.out.println("Libro '" + libroPrestamo.getTitulo() + "' prestado correctamente a " + usuarioPrestamo.getNombre());
+                            libroPrestamo.setUsuarioReservado(usuarioPrestamo);
+                            System.out.println("El libro '" + libroPrestamo.getTitulo() + "' ha sido prestado correctamente a " + usuarioPrestamo.getNombre());
                         } else {
-                            System.out.println("Libro no encontrado.");
+                            System.out.println("Libro no disponible.");
                         }
                     } else {
                         System.out.println("Usuario no encontrado.");
                     }
                     break;
                 case 5:
-                    System.out.print("Ingrese el nombre del usuario: ");
+                    System.out.print("Ingrese su nombre de usuario: ");
                     String nombreUsuarioDevolucion = scanner.nextLine();
                     Usuario usuarioDevolucion = encontrarUsuario(biblioteca, nombreUsuarioDevolucion);
                     if (usuarioDevolucion != null) {
@@ -87,7 +91,16 @@ public class Main {
                         Libro libroDevolucion = encontrarLibro(usuarioDevolucion, tituloLibroDevolucion);
                         if (libroDevolucion != null) {
                             usuarioDevolucion.removeLibroPendiente(libroDevolucion);
-                            System.out.println("Libro '" + libroDevolucion.getTitulo() + "' devuelto correctamente por " + usuarioDevolucion.getNombre());
+                            libroDevolucion.setUsuarioReservado(null);
+                            System.out.println("El libro '" + libroDevolucion.getTitulo() + "' ha sido devuelto correctamente por " + usuarioDevolucion.getNombre());
+
+                            // Verificar si hay usuarios en la cola de reserva
+                            if (!biblioteca.getColaReserva().isEmpty()) {
+                                Usuario usuarioReserva = biblioteca.quitarUsuarioColaReserva();
+                                libroDevolucion.setUsuarioReservado(usuarioReserva);
+                                usuarioReserva.addLibroPendiente(libroDevolucion);
+                                System.out.println("Libro prestado a " + usuarioReserva.getNombre() + " de la cola de reserva.");
+                            }
                         } else {
                             System.out.println("Libro no encontrado.");
                         }
